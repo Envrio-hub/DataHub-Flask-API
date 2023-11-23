@@ -110,29 +110,10 @@ class GetSensorData(Resource):
             }
         return jsonify(data_dict)
 
-class IternalGetSensorData(Resource):
-
-    def get(self):
-        flux = influx.InfluxDB(bucket_name='sensors_meters', organization='envrio', conf_file='envrio_config.ini')
-        args = request.args
-        sensor_info = crud.SensorsMeters.get_by_id(id = int(args['sensor_id']))
-        unit = sensor_info.unit
-        measurement =sensor_info.measurement
-        start = datetime.fromtimestamp(int(args["start"])/1000) if "start" in args.keys() else  (datetime.now() - timedelta(days = 3))
-        end =  datetime.fromtimestamp(int(args["end"])/1000) if "end" in args.keys() else  datetime.now()
-        data = flux.query_data(measurement=measurement,sensor_id=args["sensor_id"],unit=unit,start=start,stop=end)
-        data_dict = {
-                  "date_time": [int(pd.Timestamp(x).timestamp())*1000 for x in data["_time"]],
-                  "value": [float(x) for x in data.iloc[:,4].values]
-             }
-        return jsonify(data_dict)
-
-
 api.add_resource(Authentication,f'/{prefix}/auth')
 api.add_resource(GetStations,f'/{prefix}/stations')
 api.add_resource(GetStationSensors,f'/{prefix}/station_sensors')
 api.add_resource(GetSensorData,f'/{prefix}/sensor_data')
-api.add_resource(IternalGetSensorData,f'/{prefix}/get_data')
 
 def get_token(header: str) -> str:
     match header.split(" "):
