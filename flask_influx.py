@@ -1,13 +1,14 @@
-__version__="1.0.1"
-__author__='Ioannis Tsakmakis'
+__version__="1.0.2"
+__authors__=['Ioannis Tsakmakis']
 __date_created__='2023-11-21'
+__last_updated__='2024-04-08'
 
 from flask import Flask, request, jsonify
 from flask_restful import Resource, Api
 from flask_cors import CORS
 from datetime import datetime, timedelta
 import pandas as pd
-from databases_library import crud, influx
+from databases_utils import crud, influx
 import boto3, json
 from cognito import CognitoIdentityProviderWrapper, DecodeVerifyJWT
 from datetime import datetime
@@ -35,8 +36,8 @@ class Authentication(Resource):
         response = cognito.start_sign_in(user_name=data['username'], password=data['password'])
         
         if response.get('AuthenticationResult'):
-            subscription_status = crud.User.get_by_email(email=data['username']).subscription_expires_in
-            if subscription_status == "inf":
+            subscription_status = crud.User.get_by_email(email=data['username']).Users.subscription_expires_in
+            if subscription_status == -9:
                return {'message':'succefull authentication','access_token':response['AuthenticationResult']['AccessToken']}
             else:
                 response = {'message':'Unauthorized','errors':['Your subscription has expired']} if datetime.strptime(subscription_status,"%Y-%m-%d") < datetime.now() else {'message':'succefull authendication','access_token':response['AuthenticationResult']['AccessToken']}
@@ -57,9 +58,9 @@ class GetStations(Resource):
         claims = decoder.lambda_handler({'token':access_token}, None)
         if datetime.fromtimestamp(claims['exp']) < datetime.now():
             return {'message':'Unauthorized','errors': ['expired token']}, 401
-        stations = crud.Stations.get_by_access(user_id=get_user_id(claims['sub']).id)
-        response = [{"station_id":station.id,"date_created":station.date_created,"longitude":float(station.longitude),
-                     "latitude":float(station.latitude),"elevation":station.elevation,"name":station.name['en']} for station in stations]
+        stations = crud.Stations.get_by_access(user_id=get_user_id(claims['sub']).Users.id)
+        response = [{"station_id":station.Stations.id,"date_created":station.Stations.date_created,"longitude":float(station.Stations.longitude),
+                     "latitude":float(station.Stations.latitude),"elevation":station.Stations.elevation,"name":station.Stations.name['en']} for station in stations]
         return response
 
 class GetStationSensors(Resource):
@@ -75,9 +76,10 @@ class GetStationSensors(Resource):
         if datetime.fromtimestamp(claims['exp']) < datetime.now():
             return {'message':'Unauthorized','errors': ['expired token']}, 401
         args = request.args
-        sensors = crud.SensorsMeters.get_by_station_id(station_id=int(args['station_id']))
-        response = [{'sensor_id':sensor.id,'measurement':sensor.measurement,'unit':sensor.unit,'gauge_height':sensor.gauge_height} for sensor in sensors]
-        return response     
+        sensors = crud.MonitoredParameters.get_by_station_id(station_id=int(args['station_id']))
+        response = [{'sensor_id':sensor.MonitoredParameters.id,'measurement':sensor.MonitoredParameters.measurement,'unit':sensor.MonitoredParameters.unit,'gauge_height':sensor.MonitoredParameters.device_height} for sensor in sensors]
+        return response
+    
 class GetSensorData(Resource):
 
     def get(self):
@@ -95,10 +97,10 @@ class GetSensorData(Resource):
         end =  datetime.fromtimestamp(int(args["end"])/1000) if "end" in args.keys() else  datetime.now()
         if (end - start).days > 3:
             return {'message':'Bad request','errors':['The requested time period exceeds the allowed 3 days maximum']}, 400
-        sensor_info = crud.SensorsMeters.get_by_id(id = int(args['sensor_id']))
-        unit = sensor_info.unit
-        measurement =sensor_info.measurement
-        flux = influx.InfluxDB(bucket_name='sensors_meters', organization='envrio', conf_file='envrio_config.ini')
+        sensor_info = crud.MonitoredParameters.get_by_id(id = int(args['sensor_id']))
+        unit = sensor_info.MonitoredParameters.unit
+        measurement =sensor_info.MonitoredParameters.measurement
+        flux = influx.DataManagement(bucket_name='sensors_meters', organization='envrio', conf_file='change_to_conf_file_path')
         data = flux.query_data(measurement=measurement, sensor_id=args["sensor_id"], unit=unit, start=start, stop=end)
         data_dict = {
             "sensor_id": args["sensor_id"],
@@ -122,4 +124,3 @@ def get_token(header: str) -> str:
         
 def get_user_id(name: str):
     return crud.User.get_by_name(name=name)
-
