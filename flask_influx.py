@@ -94,7 +94,7 @@ class GetStationData(Resource):
         sensors_info = crud.MonitoredParameters.get_by_station_id(station_id=int(args['station_id']))
         sensors_info = [{'sensor_id':sensor.MonitoredParameters.id,'measurement':sensor.MonitoredParameters.measurement,
                          'unit':sensor.MonitoredParameters.unit} for sensor in sensors_info]
-        flux = influx.DataManagement(bucket_name='sensors_meters', organization='envrio', conf_file='C:/Users/xylop/Documents/github_repos/.certification_files/envrio_config.ini')
+        flux = influx.DataManagement(bucket_name='sensors_meters', organization='envrio', conf_file='path-to-your-configuration-file')
         station_data = {}
         for sensor in sensors_info:
             data = flux.query_data(measurement=sensor['measurement'], sensor_id=sensor['sensor_id'], unit=sensor['unit'],
@@ -155,7 +155,7 @@ class GetSensorData(Resource):
         sensor_info = crud.MonitoredParameters.get_by_id(id = int(args['sensor_id']))
         unit = sensor_info.MonitoredParameters.unit
         measurement =sensor_info.MonitoredParameters.measurement
-        flux = influx.DataManagement(bucket_name='sensors_meters', organization='envrio', conf_file='C:/Users/xylop/Documents/github_repos/.certification_files/envrio_config.ini')
+        flux = influx.DataManagement(bucket_name='sensors_meters', organization='envrio', conf_file='path-to-your-configuration-file')
         data = flux.query_data(measurement=measurement, sensor_id=args["sensor_id"], unit=unit, start=start, stop=end)
         data_dict = {
             "sensor_id": args["sensor_id"],
@@ -171,7 +171,7 @@ api.add_resource(Authentication,f'/{prefix}/auth')
 api.add_resource(GetStations,f'/{prefix}/stations')
 api.add_resource(GetStationSensors,f'/{prefix}/station_sensors')
 api.add_resource(GetStationData,f'/{prefix}/station_data')
-api.add_resource(GetSensorData,f'/{prefix}/sensor_data')
+api.add_resource(GetSensorData,f'/{prefix}/')
 
 def get_token(header: str) -> str:
     match header.split(" "):
