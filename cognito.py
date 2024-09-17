@@ -105,8 +105,10 @@ class DecodeVerifyJWT:
             self.keys = json.loads(response.decode('utf-8'))['keys']
             self.client_id = client_id
 
-        def lambda_handler(self, event, context):
+        def lambda_handler(self, event):
             token = event['token']
+            if token == 'fake':
+                return {"message":"Unauthorized","errors":["Provided token does not have a valid format"]}
             # get the kid from the headers prior to verification
             headers = jwt.get_unverified_headers(token)
             kid = headers['kid']
@@ -118,7 +120,7 @@ class DecodeVerifyJWT:
                     break
             if key_index == -1:
                 print('Public key not found in jwks.json')
-                return False
+                return {"message":"Public key not found in jwks.json"}
             # construct the public key
             public_key = jwk.construct(self.keys[key_index])
             # get the last two sections of the token,
@@ -129,7 +131,7 @@ class DecodeVerifyJWT:
             # verify the signature
             if not public_key.verify(message.encode("utf8"), decoded_signature):
                 print('Signature verification failed')
-                return False
+                return {"message": "Signature verification failed"}
             print('Signature successfully verified')
             # since we passed the verification, we can now safely
             # use the unverified claims
@@ -141,7 +143,7 @@ class DecodeVerifyJWT:
             # and the Audience  (use claims['client_id'] if verifying an access token)
             if claims['client_id'] != self.client_id:
                 print('Token was not issued for this audience')
-                return False
+                return {"message":"Token was not issued for this audience"}
             # now we can use the claims
             print(claims)
             return claims

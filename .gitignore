@@ -1,0 +1,8 @@
+# self
+.gitignore
+
+# json
+cognito.json
+
+# cache
+__pycache__/
