@@ -4,8 +4,5 @@
 # json
 cognito.json
 
-# py
-testing_requests.py
-
 # cache
 __pycache__/
