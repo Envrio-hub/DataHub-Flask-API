@@ -89,7 +89,7 @@ class GetStationData(Resource):
         start = (datetime.now() - timedelta(days = 3))
         end =  datetime.now()
         stations = [station.Stations.id for station in crud.Stations.get_by_access(user_id=get_user_id(claims['sub']).Users.id)]
-        if not args['station_id'] in stations:
+        if not int(args['station_id']) in stations:
             return {"message": "Forbidden", 'errors':["You do not have permission to access this station."]}, 403
         sensors_info = crud.MonitoredParameters.get_by_station_id(station_id=int(args['station_id']))
         sensors_info = [{'sensor_id':sensor.MonitoredParameters.id,'measurement':sensor.MonitoredParameters.measurement,
@@ -125,7 +125,7 @@ class GetStationSensors(Resource):
             return {'message':'Unauthorized','errors': ['expired token']}, 401
         args = request.args
         stations = [station.Stations.id for station in crud.Stations.get_by_access(user_id=get_user_id(claims['sub']).Users.id)]
-        if not args['station_id'] in stations:
+        if not int(args['station_id']) in stations:
             return {"message": "Forbidden", 'errors':["You do not have permission to access this station."]}, 403
         sensors = crud.MonitoredParameters.get_by_station_id(station_id=int(args['station_id']))
         response = [{'sensor_id':sensor.MonitoredParameters.id,'measurement':sensor.MonitoredParameters.measurement,'unit':sensor.MonitoredParameters.unit,'gauge_height':sensor.MonitoredParameters.device_height} for sensor in sensors]
